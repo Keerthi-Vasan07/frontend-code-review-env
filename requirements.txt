@@ -1,0 +1,10 @@
+# Core runtime
+pydantic>=2.0,<3.0
+pyyaml>=6.0
+
+# Baseline script (OpenAI client)
+openai>=1.0
+
+# Testing (optional, not required for runtime)
+pytest>=7.0
+pytest-cov>=4.0

@@ -1,0 +1,26 @@
+[project]
+name = "frontend-code-review-env"
+version = "0.1.0"
+description = "OpenEnv environment for evaluating AI-generated frontend code"
+authors = [
+    { name = "Developer" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "openenv-core",
+    "pydantic",
+    "fastapi",
+    "uvicorn"
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[tool.openenv]
+entrypoint = "env:FrontendCodeReviewEnv"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
