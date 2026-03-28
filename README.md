@@ -1,3 +1,13 @@
+---
+title: Frontend Code Review Env
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: server/app.py
+pinned: false
+---
+
 # frontend_code_review_env
 
 > An **OpenEnv-compliant** environment that evaluates AI-generated frontend code  
