@@ -36,6 +36,7 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 3: final image ──────────────────────────────────────────────────────
+# ── Stage 3: final image ──────────────────────────────────────────────────────
 FROM base AS final
 
 WORKDIR /app
@@ -44,19 +45,11 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy project source
-COPY --chown=envuser:envuser env.py       ./env.py
-COPY --chown=envuser:envuser models.py    ./models.py
-COPY --chown=envuser:envuser tasks.py     ./tasks.py
-COPY --chown=envuser:envuser graders.py   ./graders.py
-COPY --chown=envuser:envuser baseline.py  ./baseline.py
-COPY --chown=envuser:envuser openenv.yaml ./openenv.yaml
-COPY --chown=envuser:envuser README.md    ./README.md
+# ✅ Copy entire project (FIX)
+COPY --chown=envuser:envuser . .
 
 USER envuser
 
-# Expose PYTHONPATH so all local modules are importable
 ENV PYTHONPATH=/app
 
-# Start the web server
 CMD ["python", "app.py"]
