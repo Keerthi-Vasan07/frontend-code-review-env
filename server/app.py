@@ -8,7 +8,7 @@ env = FrontendCodeReviewEnv()
 
 @app.get("/")
 def root():
-    return {"message": "Frontend Code Review Environment Running"}
+    return {"status": "running", "message": "Frontend Code Review Env is live"}
 
 @app.post("/run")
 def run_env(code: str):

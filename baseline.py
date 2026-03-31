@@ -26,8 +26,10 @@ from models import Action
 from tasks import ALL_TASKS
 
 
-def test_api_connection(client: openai.OpenAI) -> bool:
+def test_api_connection(client: Optional[openai.OpenAI]) -> bool:
     """Test the OpenAI API connection before starting evaluations."""
+    if not client:
+        return False
     try:
         print("Testing API connection...")
         resp = client.chat.completions.create(
@@ -73,13 +75,15 @@ Generate the code now."""
 
 
 def call_openai(
-    client: openai.OpenAI,
+    client: Optional[openai.OpenAI],
     task_description: str,
     requirements: List[str],
     model: str,
     max_retries: int = 2,
 ) -> Optional[str]:
     """Call the OpenAI API and return the raw code string, or None on failure."""
+    if not client:
+        return None
     user_prompt = build_user_prompt(task_description, requirements)
 
     for attempt in range(1, max_retries + 1):
@@ -107,7 +111,7 @@ def call_openai(
 
 def evaluate_task(
     env: FrontendCodeReviewEnv,
-    client: openai.OpenAI,
+    client: Optional[openai.OpenAI],
     task_id: str,
     model: str,
     verbose: bool = False,
@@ -264,15 +268,14 @@ def main() -> None:
 
     # --- API key ---
     api_key = os.environ.get("OPENAI_API_KEY")
+    client = None
     if not api_key:
-        print("[ERROR] OPENAI_API_KEY environment variable is not set.", file=sys.stderr)
-        sys.exit(1)
-
-    client = openai.OpenAI(api_key=api_key)
-
-    # 5. ADD API HEALTH CHECK FUNCTION
-    if not test_api_connection(client):
-        print("[WARN] API test failed. Continuing anyway, but expect fallback responses.")
+        print("[WARN] OPENAI_API_KEY environment variable is not set. Using fallback dummy responses.")
+    else:
+        client = openai.OpenAI(api_key=api_key)
+        # 5. ADD API HEALTH CHECK FUNCTION
+        if not test_api_connection(client):
+            print("[WARN] API test failed. Continuing anyway, but expect fallback responses.")
 
     # --- Determine tasks to run ---
     if args.task_id:

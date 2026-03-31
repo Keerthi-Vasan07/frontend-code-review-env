@@ -58,6 +58,5 @@ USER envuser
 # Expose PYTHONPATH so all local modules are importable
 ENV PYTHONPATH=/app
 
-# Default: evaluate all 15 tasks
-ENTRYPOINT ["python", "baseline.py"]
-CMD ["--all"]
+# Start the web server
+CMD ["python", "app.py"]
