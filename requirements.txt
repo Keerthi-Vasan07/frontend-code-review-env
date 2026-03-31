@@ -8,3 +8,7 @@ openai>=1.0
 # Testing (optional, not required for runtime)
 pytest>=7.0
 pytest-cov>=4.0
+
+# Web server
+fastapi
+uvicorn
