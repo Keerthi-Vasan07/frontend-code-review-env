@@ -31,7 +31,6 @@ client = OpenAI(
 
 def generate_code(prompt: str, max_retries: int = 3) -> str:
     if not API_KEY:
-        print("[WARN] No API key found. Using fallback.")
         return "<div>Fallback response</div>"
 
     for attempt in range(max_retries):
@@ -59,12 +58,10 @@ def generate_code(prompt: str, max_retries: int = 3) -> str:
 
             return output
 
-        except Exception as e:
+        except Exception:
             wait_time = 2 ** attempt
-            print(f"[WARN] API error: {e}, retrying in {wait_time}s...")
             time.sleep(wait_time)
 
-    print("[ERROR] API failed. Using fallback.")
     return "<div>Fallback response</div>"
 
 # ─────────────────────────────────────────────────────────────
@@ -74,11 +71,11 @@ def generate_code(prompt: str, max_retries: int = 3) -> str:
 def run_all_tasks():
     results = []
 
-    print("\n================= EVALUATION START =================\n")
+    print("[START]")
+    print(f"total_tasks={len(ALL_TASKS)}")
+    print(f"model={MODEL_NAME}")
 
     for task in ALL_TASKS:
-        print(f"Task: {task.task_id} ({task.difficulty})")
-
         env = FrontendCodeReviewEnv(task_id=task.task_id)
         obs = env.reset()
 
@@ -96,8 +93,17 @@ def run_all_tasks():
 
         results.append(result)
 
-        print(f"Reward: {reward:.3f}")
-        print("-" * 40)
+        print("[STEP]")
+        print(f"task_id={task.task_id}")
+        print(f"difficulty={task.difficulty.value}")
+        print(f"reward={reward}")
+        print(f"structure_score={info.get('structure_score', 0.0)}")
+        print(f"style_score={info.get('style_score', 0.0)}")
+        print(f"responsiveness_score={info.get('responsiveness_score', 0.0)}")
+        print(f"accessibility_score={info.get('accessibility_score', 0.0)}")
+        print(f"code_quality_score={info.get('code_quality_score', 0.0)}")
+        print(f"penalties={info.get('penalties', 0.0)}")
+        print(f"done={str(done).lower()}")
 
     return results
 
@@ -108,7 +114,8 @@ def run_all_tasks():
 if __name__ == "__main__":
     results = run_all_tasks()
 
-    print("\n================= FINAL RESULTS =================\n")
+    avg_reward = sum(r["reward"] for r in results) / len(results) if results else 0.0
 
-    for r in results:
-        print(f"{r['task_id']} | {r['difficulty']} | {r['reward']:.3f}")
+    print("[END]")
+    print(f"total_tasks={len(results)}")
+    print(f"average_reward={avg_reward}")
