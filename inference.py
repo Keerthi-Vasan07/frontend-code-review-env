@@ -13,8 +13,8 @@ from tasks import ALL_TASKS
 # ─────────────────────────────────────────────────────────────
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 # ─────────────────────────────────────────────────────────────
 # CLIENT SETUP
@@ -22,47 +22,33 @@ MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
 
 client = OpenAI(
     base_url=API_BASE_URL,
-    api_key=API_KEY or "dummy_key",
+    api_key=HF_TOKEN
 )
 
 # ─────────────────────────────────────────────────────────────
-# SAFE GENERATION FUNCTION
+# GENERATE CODE USING OPENAI CLIENT
 # ─────────────────────────────────────────────────────────────
 
-def generate_code(prompt: str, max_retries: int = 3) -> str:
-    if not API_KEY:
-        return "<div>Fallback response</div>"
+def generate_code(prompt: str) -> str:
+    if not HF_TOKEN:
+        return "<div>Fallback</div>"
 
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert frontend developer. Generate accurate HTML/CSS code that satisfies the given task requirements exactly. Ensure the output is functional and correctly structured. Use semantic HTML where appropriate, but prioritize correctness over extra features. Return ONLY raw HTML/CSS without explanations."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.2,
-                max_tokens=300
-            )
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an expert frontend developer. Generate accurate HTML/CSS code that satisfies the given task requirements exactly. Return only code."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.2
+    )
 
-            output = response.choices[0].message.content.strip()
-
-            if "<" not in output:
-                return "<div>Invalid output</div>"
-
-            return output
-
-        except Exception:
-            wait_time = 2 ** attempt
-            time.sleep(wait_time)
-
-    return "<div>Fallback response</div>"
+    return response.choices[0].message.content.strip()
 
 # ─────────────────────────────────────────────────────────────
 # RUN EVALUATION
