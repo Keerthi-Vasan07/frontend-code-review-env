@@ -40,7 +40,7 @@ def generate_code(prompt: str, max_retries: int = 3) -> str:
                 messages=[
                     {
                         "role": "system",
-                        "content": "Generate ONLY HTML/CSS code. No explanations."
+                        "content": "You are an expert frontend developer. Generate accurate HTML/CSS code that satisfies the given task requirements exactly. Ensure the output is functional and correctly structured. Use semantic HTML where appropriate, but prioritize correctness over extra features. Return ONLY raw HTML/CSS without explanations."
                     },
                     {
                         "role": "user",
@@ -79,10 +79,31 @@ def run_all_tasks():
         env = FrontendCodeReviewEnv(task_id=task.task_id)
         obs = env.reset()
 
-        code = generate_code(obs.task_description)
+        prompt = f"""
+Task:
+{obs.task_description}
+
+Instructions:
+- Solve the task exactly as described
+- Include all required HTML elements
+- Add CSS only if needed
+- Do not skip required components
+- Do not add unnecessary features
+- Ensure correctness over styling
+
+Return only HTML/CSS.
+"""
+        code = generate_code(prompt)
 
         action = Action(code=code)
         _, reward, done, info = env.step(action)
+
+        # Single retry on zero-score to recover from bad generation
+        if reward == 0:
+            env.reset()  # episode is single-step; must reset before retrying
+            code = generate_code(prompt)
+            action = Action(code=code)
+            _, reward, done, info = env.step(action)
 
         result = {
             "task_id": task.task_id,

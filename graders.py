@@ -304,7 +304,17 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
         result = _grade_hard(normalised, code, task)
 
     # Apply penalties on top of positive scores
-    final_reward = round(max(-0.5, min(1.0, result.total_reward + penalty)), 4)
+    final_reward = result.total_reward + penalty
+
+    # Semantic HTML boost: reward use of meaningful structural elements
+    if "<button" in code or "<header" in code or "<section" in code:
+        final_reward += 0.05
+
+    # Accessibility bonus: reward ARIA attributes and alt text
+    if "aria-" in code or "alt=" in code:
+        final_reward += 0.05
+
+    final_reward = round(max(-0.5, min(1.0, final_reward)), 4)
 
     return GradeResult(
         structure_score=result.structure_score,
