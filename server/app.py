@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from env import FrontendCodeReviewEnv as FrontendEnv
+from env import FrontendEnv
 from models import Action
 
 app = FastAPI()
@@ -16,7 +16,7 @@ def reset():
     global obs
     obs = env.reset()
     return {
-        "task_id": env.current_task.task_id,
+        "task_id": obs.task_id,
         "task_description": obs.task_description
     }
 
