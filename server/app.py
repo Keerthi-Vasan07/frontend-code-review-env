@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from env import FrontendCodeReviewEnv
 from models import Action
-import uvicorn
 
 app = FastAPI()
 
@@ -35,16 +34,4 @@ def step(req: StepRequest):
 
 @app.get("/state")
 def state():
-    return {
-        "status": "running"
-    }
-
-@app.get("/")
-def root():
-    return {"status": "running", "message": "Frontend Code Review Env is live"}
-
-def main():
-    uvicorn.run(app, host="0.0.0.0", port=7860)
-
-if __name__ == "__main__":
-    main()
+    return {"status": "running"}

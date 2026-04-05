@@ -1,4 +1,1 @@
-from server.app import main
-
-if __name__ == "__main__":
-    main()
+from server.app import app
