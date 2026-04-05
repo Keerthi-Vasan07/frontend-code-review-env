@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from env import FrontendCodeReviewEnv
+from env import FrontendCodeReviewEnv as FrontendEnv
 from models import Action
 
 app = FastAPI()
 
-env = FrontendCodeReviewEnv()
+env = FrontendEnv()
 obs = None
 
 class StepRequest(BaseModel):
