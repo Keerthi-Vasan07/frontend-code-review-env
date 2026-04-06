@@ -1,3 +1,5 @@
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # frontend_code_review_env  –  Dockerfile
 # ──────────────────────────────────────────────────────────────────────────────
@@ -14,6 +16,7 @@
 
 # ── Stage 1: base image ───────────────────────────────────────────────────────
 FROM python:3.11-slim AS base
+ARG CACHE_BUST=2
 
 # Security: do not run as root
 RUN addgroup --system envuser && adduser --system --ingroup envuser envuser
@@ -36,7 +39,6 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 3: final image ──────────────────────────────────────────────────────
-# ── Stage 3: final image ──────────────────────────────────────────────────────
 FROM base AS final
 
 WORKDIR /app
@@ -44,6 +46,8 @@ WORKDIR /app
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+RUN echo "Rebuilding container..."
 
 # ✅ Copy entire project (FIX)
 COPY --chown=envuser:envuser . .
