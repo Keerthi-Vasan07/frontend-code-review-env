@@ -11,6 +11,10 @@ obs = None
 class StepRequest(BaseModel):
     code: str
 
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
 @app.post("/reset")
 def reset():
     global obs
