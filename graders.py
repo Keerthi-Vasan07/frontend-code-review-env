@@ -1,5 +1,9 @@
 from models import GradeResult
 
+def clamp_score(x: float) -> float:
+    """Clamps a score strictly between 0.01 and 0.99."""
+    return max(0.01, min(0.99, x))
+
 def grade(code: str, task) -> GradeResult:
     """
     Outcome-based reward system with task-dependent variation and range amplification.
@@ -37,16 +41,31 @@ def grade(code: str, task) -> GradeResult:
     elif diff == "medium":
         score += 0.1
 
-    # Clamp result strictly within (0.02, 0.98)
-    score = max(0.02, min(0.98, round(score, 4)))
+    # Base component calculations (before final clamping)
+    structure_score = clamp_score(score * 0.3)
+    style_score = clamp_score(score * 0.2)
+    responsiveness_score = clamp_score(score * 0.2)
+    accessibility_score = clamp_score(score * 0.2)
+    code_quality_score = clamp_score(score * 0.1)
+
+    # Final total reward calculation
+    total_reward = (
+        0.3 * structure_score +
+        0.2 * style_score +
+        0.2 * responsiveness_score +
+        0.2 * accessibility_score +
+        0.1 * code_quality_score
+    )
+
+    total_reward = clamp_score(total_reward)
 
     return GradeResult(
-        total_reward=score,
-        structure_score=score * 0.3,
-        style_score=score * 0.2,
-        responsiveness_score=score * 0.2,
-        accessibility_score=score * 0.2,
-        code_quality_score=score * 0.1,
+        total_reward=total_reward,
+        structure_score=structure_score,
+        style_score=style_score,
+        responsiveness_score=responsiveness_score,
+        accessibility_score=accessibility_score,
+        code_quality_score=code_quality_score,
         penalties=0.0
     )
 

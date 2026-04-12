@@ -67,7 +67,7 @@ class FrontendEnv:
             result = grade(code, task)
         except Exception:
             # Absolute fallback – never crash the server
-            result = GradeResult(total_reward=0.02)
+            result = GradeResult(total_reward=0.01)
 
         # 🔥 ADD STATE CHANGE
         self.state["progress"] += 1
@@ -93,8 +93,8 @@ class FrontendEnv:
                 "difficulty": next_task.difficulty.value
             }
 
-        # 🔥 CLAMP REWARD strictly within [0.00, 1.00]
-        reward = max(0.0, min(1.0, round(reward, 2)))
+        # 🔥 CLAMP REWARD strictly within (0.01, 0.99)
+        reward = max(0.01, min(0.99, reward))
 
 
 
