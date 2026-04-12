@@ -32,6 +32,7 @@ class FrontendEnv:
     def __init__(self) -> None:
         self.tasks = ALL_TASKS
         self.current_index: int = 0
+        self.state: Dict[str, Any] = {"progress": 0}
 
     # ------------------------------------------------------------------
     # OpenEnv interface
@@ -40,6 +41,7 @@ class FrontendEnv:
     def reset(self) -> Dict[str, Any]:
         """Restart from task 0. Returns the first task dict."""
         self.current_index = 0
+        self.state = {"progress": 0}
         task = self.tasks[self.current_index]
         return {
             "task_id": task.task_id,
@@ -66,11 +68,17 @@ class FrontendEnv:
             # Absolute fallback – never crash the server
             result = GradeResult(total_reward=0.02)
 
+        # 🔥 ADD STATE CHANGE
+        self.state["progress"] += 1
+
+        # Reward depends on BOTH score + progress
+        reward = result.total_reward + (self.state["progress"] * 0.02)
+
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
 
         return {
-            "reward": result.total_reward,
+            "reward": reward,
             "done": done,
             "info": result.model_dump(),
         }
