@@ -89,7 +89,7 @@ class FrontendEnv:
             }
 
         # 🔥 CLAMP REWARD strictly within [0.00, 1.00]
-        reward = max(0.0, min(1.0, round(reward, 2)))
+        reward = max(0.0, min(0.99, round(reward, 2)))
 
         return {
             "observation": observation,
