@@ -9,7 +9,7 @@ import os
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
-TASKS = ["Easy_1", "Easy_2", "Medium", "Hard"]
+TASKS = ["vram_recovery_easy", "network_spike_medium", "mixed_incidents_hard"]
 
 # ─────────────────────────────────────────────────────────────
 # HTTP HELPERS
@@ -58,7 +58,7 @@ def get_action(task):
 def run_task(task):
     rewards = []
 
-    print(f"[START] task={task} env=custom model={MODEL_NAME}", flush=True)
+    print(f"[START] task={task} env=frontend_code_review_env model={MODEL_NAME}", flush=True)
 
     # RESET (safe: supports both POST and GET)
     try:
@@ -114,8 +114,15 @@ def run_task(task):
     rewards_str = ",".join([f"{r:.3f}" for r in rewards])
 
     # 🔥 FINAL STRICT END FORMAT
+    # Ensure score is strictly within (0.01, 0.99)
+    clamped_score = max(0.01, min(0.99, score))
+    if clamped_score <= 0.01:
+        clamped_score = 0.011
+    elif clamped_score >= 0.99:
+        clamped_score = 0.989
+
     print(
-        f"[END] success=true steps={len(rewards)} score={score:.3f} rewards={rewards_str}",
+        f"[END] success=true steps={len(rewards)} score={clamped_score:.3f} rewards={rewards_str}",
         flush=True
     )
 

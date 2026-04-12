@@ -15,9 +15,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from graders import grade
-from models import GradeResult
-from tasks import ALL_TASKS
+from server.graders import grade
+from server.models import GradeResult
+from server.tasks import ALL_TASKS
 
 
 class FrontendEnv:

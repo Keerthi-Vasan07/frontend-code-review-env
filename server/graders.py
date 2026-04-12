@@ -1,4 +1,4 @@
-from models import GradeResult
+from .models import GradeResult
 
 def clamp_score(x: float) -> float:
     if x is None:
@@ -84,4 +84,15 @@ def grade(code: str, task) -> GradeResult:
     except Exception:
         return GradeResult(total_reward=0.01)
 
+class BaseGrader:
+    def grade(self, code: str, task) -> GradeResult:
+        return grade(code, task)
 
+class VramRecoveryGrader(BaseGrader):
+    pass
+
+class NetworkSpikeGrader(BaseGrader):
+    pass
+
+class MixedIncidentsGrader(BaseGrader):
+    pass

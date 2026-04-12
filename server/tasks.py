@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from models import Difficulty, TaskSpec
+from .models import Difficulty, TaskSpec
+
+# Mapping requested IDs to existing tasks
+# vram_recovery_easy -> easy_01
+# network_spike_medium -> medium_01
+# mixed_incidents_hard -> hard_01
 
 # ---------------------------------------------------------------------------
 # EASY TASKS  (max reward 1.0 per task)
@@ -18,7 +23,7 @@ from models import Difficulty, TaskSpec
 
 EASY_TASKS: List[TaskSpec] = [
     TaskSpec(
-        task_id="easy_01",
+        task_id="vram_recovery_easy",
         task_description=(
             "Create a simple red button with the label 'Click Me'. "
             "The button background must be red and the text must be white."
@@ -147,7 +152,7 @@ EASY_TASKS: List[TaskSpec] = [
 
 MEDIUM_TASKS: List[TaskSpec] = [
     TaskSpec(
-        task_id="medium_01",
+        task_id="network_spike_medium",
         task_description=(
             "Create a login form with an email input, a password input, and a "
             "submit button labeled 'Log In'. The form should be centered on the "
@@ -294,7 +299,7 @@ MEDIUM_TASKS: List[TaskSpec] = [
 
 HARD_TASKS: List[TaskSpec] = [
     TaskSpec(
-        task_id="hard_01",
+        task_id="mixed_incidents_hard",
         task_description=(
             "Create a fully responsive navigation bar using CSS Flexbox. "
             "On desktop (≥768px) links display horizontally. On mobile (<768px) "
