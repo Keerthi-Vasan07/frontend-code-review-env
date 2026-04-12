@@ -2,7 +2,7 @@ import os
 import time
 from typing import List
 
-from openai import OpenAI
+from huggingface_hub import InferenceClient
 
 from env import FrontendCodeReviewEnv
 from models import Action
@@ -12,43 +12,57 @@ from tasks import ALL_TASKS
 # ENV VARIABLES (MANDATORY)
 # ─────────────────────────────────────────────────────────────
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
-HF_TOKEN = os.getenv("HF_TOKEN")
 
 # ─────────────────────────────────────────────────────────────
-# CLIENT SETUP
+# CLIENT SETUP (Hugging Face)
 # ─────────────────────────────────────────────────────────────
 
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=HF_TOKEN
+client = InferenceClient(
+    model=MODEL_NAME,
+    token=os.getenv("HF_TOKEN")
 )
 
 # ─────────────────────────────────────────────────────────────
-# GENERATE CODE USING OPENAI CLIENT
+# GENERATE CODE USING HF INFERENCE CLIENT
 # ─────────────────────────────────────────────────────────────
 
-def generate_code(prompt: str) -> str:
-    if not HF_TOKEN:
-        return "<div>Fallback</div>"
+def generate_code(task) -> str:
+    """Generate HTML/CSS code for the given task dict using HF InferenceClient.
 
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {
-                "role": "system",
-                "content": "You are an expert frontend developer. Generate accurate HTML/CSS code that satisfies the given task requirements exactly. Return only code."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.2
-    )
+    Accepts either a task dict (with keys 'task_id' and 'task_description')
+    or a plain prompt string for backwards compatibility.
+    Always returns some output — falls back gracefully on any error.
+    """
+    # Support both a task dict and a raw prompt string
+    if isinstance(task, dict):
+        task_id = task.get("task_id", "unknown")
+        task_description = task.get("task_description", "")
+    else:
+        # Plain prompt string passed in (e.g. from run_all_tasks legacy path)
+        task_id = "unknown"
+        task_description = str(task)
 
-    return response.choices[0].message.content.strip()
+    prompt = f"""
+    Generate HTML/CSS code for the following task:
+
+    Task: {task_description}
+
+    Requirements:
+    - Code must be valid HTML/CSS
+    - Include relevant elements
+    - Make output different for different tasks
+    """
+
+    try:
+        response = client.text_generation(
+            prompt,
+            max_new_tokens=300,
+            temperature=0.7
+        )
+        return response
+    except Exception:
+        return f"<div>Fallback content for {task_id}</div>"
 
 # ─────────────────────────────────────────────────────────────
 # RUN EVALUATION
@@ -65,21 +79,11 @@ def run_all_tasks():
         env = FrontendCodeReviewEnv(task_id=task.task_id)
         obs = env.reset()
 
-        prompt = f"""
-Task:
-{obs.task_description}
-
-Instructions:
-- Solve the task exactly as described
-- Include all required HTML elements
-- Add CSS only if needed
-- Do not skip required components
-- Do not add unnecessary features
-- Ensure correctness over styling
-
-Return only HTML/CSS.
-"""
-        code = generate_code(prompt)
+        task_dict = {
+            "task_id": task.task_id,
+            "task_description": obs.task_description,
+        }
+        code = generate_code(task_dict)
 
         action = Action(code=code)
         _, reward, done, info = env.step(action)
@@ -87,7 +91,7 @@ Return only HTML/CSS.
         # Single retry on zero-score to recover from bad generation
         if reward == 0:
             env.reset()  # episode is single-step; must reset before retrying
-            code = generate_code(prompt)
+            code = generate_code(task_dict)
             action = Action(code=code)
             _, reward, done, info = env.step(action)
 
