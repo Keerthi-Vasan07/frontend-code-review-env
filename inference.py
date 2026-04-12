@@ -102,8 +102,17 @@ def run_all_tasks():
         if done:
             break
 
-        # Advance obs to the next task returned by step()
-        obs = step_result["next_task"]
+        # Advance obs to the next task using internal environment index
+        if not done:
+            nxt = ALL_TASKS[env.current_index]
+            obs = {
+                "task_id": nxt.task_id,
+                "task_description": nxt.task_description,
+                "difficulty": nxt.difficulty.value,
+            }
+        else:
+            obs = None
+
 
     return results
 

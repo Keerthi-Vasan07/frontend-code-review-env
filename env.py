@@ -57,7 +57,6 @@ class FrontendEnv:
             reward      – float in (0.02, 0.98)
             done        – True when all tasks have been evaluated
             info        – full GradeResult breakdown (plain dict)
-            next_task   – next task dict, or None when done
         """
         task = self.tasks[self.current_index]
 
@@ -70,21 +69,12 @@ class FrontendEnv:
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
 
-        next_task: Optional[Dict[str, Any]] = None
-        if not done:
-            nxt = self.tasks[self.current_index]
-            next_task = {
-                "task_id": nxt.task_id,
-                "task_description": nxt.task_description,
-                "difficulty": nxt.difficulty.value,
-            }
-
         return {
             "reward": result.total_reward,
             "done": done,
             "info": result.model_dump(),
-            "next_task": next_task,
         }
+
 
     def state(self) -> Dict[str, Any]:
         """Debug snapshot of the current environment state."""

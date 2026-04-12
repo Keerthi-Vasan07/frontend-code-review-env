@@ -2,7 +2,7 @@ from models import GradeResult
 
 def grade(code: str, task) -> GradeResult:
     """
-    Outcome-based reward system with task-dependent variation.
+    Outcome-based reward system with task-dependent variation and range amplification.
     """
     reward = 0.0
     code_lower = code.lower()
@@ -27,6 +27,16 @@ def grade(code: str, task) -> GradeResult:
     # Weighted final score: 70% content, 30% task-specific differentiation
     score = (0.7 * base_score) + (0.3 * task_factor)
 
+    # Amplify score range
+    score = score * 3.5
+
+    # Difficulty-based scaling
+    diff = task.difficulty.value if hasattr(task.difficulty, 'value') else str(task.difficulty).lower()
+    if diff == "easy":
+        score += 0.3
+    elif diff == "medium":
+        score += 0.1
+
     # Clamp result strictly within (0.02, 0.98)
     score = max(0.02, min(0.98, round(score, 4)))
 
@@ -39,4 +49,5 @@ def grade(code: str, task) -> GradeResult:
         code_quality_score=score * 0.1,
         penalties=0.0
     )
+
 
