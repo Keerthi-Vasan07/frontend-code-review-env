@@ -286,13 +286,13 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
         # Short-circuit: penalise immediately, no point scoring further
         # Use small non-boundary values strictly within (0.01, 0.99)
         return GradeResult(
-            structure_score=0.011,
-            style_score=0.011,
-            responsiveness_score=0.011,
-            accessibility_score=0.011,
-            code_quality_score=0.011,
+            structure_score=0.02,
+            style_score=0.02,
+            responsiveness_score=0.02,
+            accessibility_score=0.02,
+            code_quality_score=0.02,
             penalties=penalty,
-            total_reward=max(0.011, min(0.989, penalty + 0.055)),
+            total_reward=max(0.02, min(0.98, penalty + 0.1)),
         )
 
     normalised = _normalise(code)
@@ -302,61 +302,43 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
     if all_structure_keywords:
         structure_fraction = _fraction_keywords_present(normalised, all_structure_keywords)
     else:
-        structure_fraction = 1.0 if normalised else 0.0
-    structure_score = structure_fraction * 0.3
-    # Clamp strictly within (0.01, 0.99)
-    structure_score = max(0.011, min(0.989, structure_score))
-    if structure_score <= 0.01:
-        structure_score = 0.011
+        structure_fraction = 0.5  # Neutral if no specific structure required
+    # Add small base score to ensure never zero, scale to stay within bounds
+    structure_score = 0.02 + (structure_fraction * 0.28)  # Range: 0.02 - 0.30
 
     # Style score: fraction match on expected_css_properties
     if task.expected_css_properties:
         style_fraction = _fraction_keywords_present(normalised, task.expected_css_properties)
     else:
         style_fraction = 0.5  # Default if no CSS properties specified
-    style_score = style_fraction * 0.2
-    # Clamp strictly within (0.01, 0.99)
-    style_score = max(0.011, min(0.989, style_score))
-    if style_score <= 0.01:
-        style_score = 0.011
+    style_score = 0.02 + (style_fraction * 0.28)  # Range: 0.02 - 0.30
 
     # Responsiveness score: fraction match on responsiveness_keywords
     if task.responsiveness_keywords:
         resp_fraction = _fraction_keywords_present(normalised, task.responsiveness_keywords)
     else:
-        resp_fraction = 0.0
-    responsiveness_score = resp_fraction * 0.2
-    # Clamp strictly within (0.01, 0.99)
-    responsiveness_score = max(0.011, min(0.989, responsiveness_score))
-    if responsiveness_score <= 0.01:
-        responsiveness_score = 0.011
+        resp_fraction = 0.5  # Neutral default
+    responsiveness_score = 0.02 + (resp_fraction * 0.28)  # Range: 0.02 - 0.30
 
     # Accessibility score: fraction match on accessibility_keywords
     if task.accessibility_keywords:
         a11y_fraction = _fraction_keywords_present(normalised, task.accessibility_keywords)
     else:
-        a11y_fraction = 0.0
-    accessibility_score = a11y_fraction * 0.2
-    # Clamp strictly within (0.01, 0.99)
-    accessibility_score = max(0.011, min(0.989, accessibility_score))
-    if accessibility_score <= 0.01:
-        accessibility_score = 0.011
+        a11y_fraction = 0.5  # Neutral default
+    accessibility_score = 0.02 + (a11y_fraction * 0.28)  # Range: 0.02 - 0.30
 
     # Code quality score
     quality_ok = _has_reasonable_code_quality(code)
-    code_quality_score = 0.2 if quality_ok else 0.05
-    # Clamp strictly within (0.01, 0.99)
-    code_quality_score = max(0.011, min(0.989, code_quality_score))
-    if code_quality_score <= 0.01:
-        code_quality_score = 0.011
+    code_quality_score = 0.15 if quality_ok else 0.05  # Range: 0.05 - 0.15
 
-    # Normalize: each component is 0-1, weights sum to 1.0
+    # Normalize each component to 0-1 range for weighted sum
     structure_normalized = structure_fraction if all_structure_keywords else 0.5
     style_normalized = style_fraction if task.expected_css_properties else 0.5
-    resp_normalized = resp_fraction if task.responsiveness_keywords else 0.0
-    a11y_normalized = a11y_fraction if task.accessibility_keywords else 0.0
-    quality_normalized = 1.0 if quality_ok else 0.25
+    resp_normalized = resp_fraction if task.responsiveness_keywords else 0.5
+    a11y_normalized = a11y_fraction if task.accessibility_keywords else 0.5
+    quality_normalized = 1.0 if quality_ok else 0.5
 
+    # Weighted total using normalized scores
     total = (
         0.3 * structure_normalized +
         0.2 * style_normalized +
@@ -370,8 +352,8 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
     variation = (abs(hash(code + task.task_id)) % 10000) / 100000.0
     total += variation
 
-    # Clamp final reward STRICTLY within (0.01, 0.99)
-    total = max(0.011, min(0.989, total))
+    # Clamp final reward STRICTLY within (0.02, 0.98) to avoid boundary issues
+    total = max(0.02, min(0.98, total))
     total = round(total, 4)
 
     return GradeResult(
