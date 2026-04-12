@@ -279,49 +279,104 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
     Returns
     -------
     GradeResult
-        Sub-scores + final total_reward ∈ [-0.5, 1.0].
+        Sub-scores + final total_reward ∈ (0.01, 0.99).
     """
     penalty = _compute_penalties(code)
     if penalty < 0.0:
         # Short-circuit: penalise immediately, no point scoring further
         return GradeResult(
-            structure_score=0.0,
-            style_score=0.0,
-            responsiveness_score=0.0,
-            accessibility_score=0.0,
-            code_quality_score=0.0,
+            structure_score=0.01,
+            style_score=0.01,
+            responsiveness_score=0.01,
+            accessibility_score=0.01,
+            code_quality_score=0.01,
             penalties=penalty,
-            total_reward=penalty,
+            total_reward=max(0.01, penalty + 0.05),
         )
 
     normalised = _normalise(code)
 
-    if task.difficulty == Difficulty.EASY:
-        result = _grade_easy(normalised, task)
-    elif task.difficulty == Difficulty.MEDIUM:
-        result = _grade_medium(normalised, task)
-    else:  # HARD
-        result = _grade_hard(normalised, code, task)
+    # Structure score: fraction match on expected_elements + expected_structure
+    all_structure_keywords = list(task.expected_elements) + list(task.expected_structure)
+    if all_structure_keywords:
+        structure_fraction = _fraction_keywords_present(normalised, all_structure_keywords)
+    else:
+        structure_fraction = 1.0 if normalised else 0.0
+    structure_score = max(0.01, min(0.99, structure_fraction * 0.3))
+    if structure_score < 0.01:
+        structure_score = 0.01
 
-    # Apply penalties on top of positive scores
-    final_reward = result.total_reward + penalty
+    # Style score: fraction match on expected_css_properties
+    if task.expected_css_properties:
+        style_fraction = _fraction_keywords_present(normalised, task.expected_css_properties)
+    else:
+        style_fraction = 0.5  # Default if no CSS properties specified
+    style_score = max(0.01, min(0.99, style_fraction * 0.2))
+    if style_score < 0.01:
+        style_score = 0.01
 
-    # Semantic HTML boost: reward use of meaningful structural elements
-    if "<button" in code or "<header" in code or "<section" in code:
-        final_reward += 0.05
+    # Responsiveness score: fraction match on responsiveness_keywords
+    if task.responsiveness_keywords:
+        resp_fraction = _fraction_keywords_present(normalised, task.responsiveness_keywords)
+    else:
+        resp_fraction = 0.0
+    responsiveness_score = max(0.01, min(0.99, resp_fraction * 0.2))
+    if responsiveness_score < 0.01:
+        responsiveness_score = 0.01
 
-    # Accessibility bonus: reward ARIA attributes and alt text
-    if "aria-" in code or "alt=" in code:
-        final_reward += 0.05
+    # Accessibility score: fraction match on accessibility_keywords
+    if task.accessibility_keywords:
+        a11y_fraction = _fraction_keywords_present(normalised, task.accessibility_keywords)
+    else:
+        a11y_fraction = 0.0
+    accessibility_score = max(0.01, min(0.99, a11y_fraction * 0.2))
+    if accessibility_score < 0.01:
+        accessibility_score = 0.01
 
-    final_reward = round(max(-0.5, min(1.0, final_reward)), 4)
+    # Code quality score
+    quality_ok = _has_reasonable_code_quality(code)
+    code_quality_score = 0.2 if quality_ok else 0.05
+    code_quality_score = max(0.01, min(0.99, code_quality_score))
+
+    # Weighted total
+    total = (
+        0.3 * (structure_score / 0.3) +
+        0.2 * (style_score / 0.2) +
+        0.2 * (responsiveness_score / 0.2) +
+        0.2 * (accessibility_score / 0.2) +
+        0.1 * (code_quality_score / 0.2)
+    )
+    
+    # Normalize: each component is 0-1, weights sum to 1.0
+    # Re-compute properly
+    structure_normalized = structure_fraction if all_structure_keywords else 0.5
+    style_normalized = style_fraction if task.expected_css_properties else 0.5
+    resp_normalized = resp_fraction if task.responsiveness_keywords else 0.0
+    a11y_normalized = a11y_fraction if task.accessibility_keywords else 0.0
+    quality_normalized = 1.0 if quality_ok else 0.25
+
+    total = (
+        0.3 * structure_normalized +
+        0.2 * style_normalized +
+        0.2 * resp_normalized +
+        0.2 * a11y_normalized +
+        0.1 * quality_normalized
+    )
+
+    # Add task-specific variation based on hash of code + task_id
+    variation = (abs(hash(code + task.task_id)) % 1000) / 100000.0
+    total += variation
+
+    # Clamp final reward to (0.01, 0.99)
+    total = max(0.01, min(0.99, total))
+    total = round(total, 4)
 
     return GradeResult(
-        structure_score=result.structure_score,
-        style_score=result.style_score,
-        responsiveness_score=result.responsiveness_score,
-        accessibility_score=result.accessibility_score,
-        code_quality_score=result.code_quality_score,
+        structure_score=round(structure_score, 4),
+        style_score=round(style_score, 4),
+        responsiveness_score=round(responsiveness_score, 4),
+        accessibility_score=round(accessibility_score, 4),
+        code_quality_score=round(code_quality_score, 4),
         penalties=penalty,
-        total_reward=final_reward,
+        total_reward=total,
     )
