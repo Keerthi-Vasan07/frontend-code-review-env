@@ -1,11 +1,9 @@
 import os
-import time
 from typing import List
 
 from huggingface_hub import InferenceClient
 
-from env import FrontendCodeReviewEnv
-from models import Action
+from env import FrontendEnv
 from tasks import ALL_TASKS
 
 # ─────────────────────────────────────────────────────────────
@@ -34,12 +32,10 @@ def generate_code(task) -> str:
     or a plain prompt string for backwards compatibility.
     Always returns some output — falls back gracefully on any error.
     """
-    # Support both a task dict and a raw prompt string
     if isinstance(task, dict):
         task_id = task.get("task_id", "unknown")
         task_description = task.get("task_description", "")
     else:
-        # Plain prompt string passed in (e.g. from run_all_tasks legacy path)
         task_id = "unknown"
         task_description = str(task)
 
@@ -76,37 +72,35 @@ def run_all_tasks():
     print(f"model={MODEL_NAME}")
 
     for task in ALL_TASKS:
-        env = FrontendCodeReviewEnv(task_id=task.task_id)
+        # Create a fresh env per task, reset to get the first task
+        env = FrontendEnv()
         obs = env.reset()
 
+        # obs is a plain dict: {task_id, task_description, difficulty}
         task_dict = {
-            "task_id": task.task_id,
-            "task_description": obs.task_description,
+            "task_id": obs["task_id"],
+            "task_description": obs["task_description"],
         }
         code = generate_code(task_dict)
 
-        action = Action(code=code)
-        _, reward, done, info = env.step(action)
-
-        # Single retry on zero-score to recover from bad generation
-        if reward == 0:
-            env.reset()  # episode is single-step; must reset before retrying
-            code = generate_code(task_dict)
-            action = Action(code=code)
-            _, reward, done, info = env.step(action)
+        # step() accepts a plain code string and returns a plain dict
+        step_result = env.step(code)
+        reward = step_result["reward"]
+        done = step_result["done"]
+        info = step_result["info"]
 
         result = {
-            "task_id": task.task_id,
-            "difficulty": task.difficulty.value,
+            "task_id": obs["task_id"],
+            "difficulty": obs["difficulty"],
             "reward": reward,
-            "details": info
+            "details": info,
         }
 
         results.append(result)
 
         print("[STEP]")
-        print(f"task_id={task.task_id}")
-        print(f"difficulty={task.difficulty.value}")
+        print(f"task_id={obs['task_id']}")
+        print(f"difficulty={obs['difficulty']}")
         print(f"reward={reward}")
         print(f"structure_score={info.get('structure_score', 0.0)}")
         print(f"style_score={info.get('style_score', 0.0)}")

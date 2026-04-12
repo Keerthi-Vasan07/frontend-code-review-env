@@ -1,41 +1,39 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+
 from env import FrontendEnv
-from models import Action
 
-app = FastAPI()
+app = FastAPI(title="frontend_code_review_env")
 
+# Single shared environment instance
 env = FrontendEnv()
-obs = None
 
-class StepRequest(BaseModel):
+
+class StepInput(BaseModel):
     code: str
+
+
+# ── Required endpoints ──────────────────────────────────────────────────────
+
+@app.get("/reset")
+def reset():
+    """Start (or restart) the episode from task 0."""
+    return env.reset()
+
+
+@app.post("/step")
+def step(data: StepInput):
+    """Evaluate submitted code and advance to the next task."""
+    return env.step(data.code)
+
+
+# ── Optional / diagnostic endpoints ─────────────────────────────────────────
 
 @app.get("/health")
 def health():
     return {"status": "healthy"}
 
-@app.post("/reset")
-def reset():
-    global obs
-    obs = env.reset()
-    return {
-        "task_id": obs.task_id,
-        "task_description": obs.task_description
-    }
-
-@app.post("/step")
-def step(req: StepRequest):
-    global obs
-    action = Action(code=req.code)
-    obs, reward, done, info = env.step(action)
-
-    return {
-        "reward": reward,
-        "done": done,
-        "info": info
-    }
 
 @app.get("/state")
 def state():
-    return {"status": "running"}
+    return env.state()
