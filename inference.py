@@ -108,7 +108,7 @@ def run_task(task):
 
     score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.001
 
-    score = max(0.001, min(0.999, score))
+    score = max(0.01, min(0.99, score))
     score = round(score, 3)
 
     rewards_str = ",".join([f"{r:.3f}" for r in rewards])
