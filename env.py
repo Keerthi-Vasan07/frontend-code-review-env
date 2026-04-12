@@ -96,6 +96,14 @@ class FrontendEnv:
         # 🔥 CLAMP REWARD strictly within (0.01, 0.99)
         reward = max(0.01, min(0.99, reward))
 
+        # prevent rounding edge
+        if reward <= 0.01:
+            reward = 0.011
+        if reward >= 0.99:
+            reward = 0.989
+
+        reward = round(reward, 4)
+
 
 
         return {

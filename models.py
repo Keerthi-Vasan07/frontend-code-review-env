@@ -164,12 +164,11 @@ class GradeResult(BaseModel):
     Simplified grading result for a single action, retaining standard schema.
     """
     total_reward: float
-    structure_score: float = 0.0
-    style_score: float = 0.0
-    responsiveness_score: float = 0.0
-    accessibility_score: float = 0.0
-    code_quality_score: float = 0.0
-    penalties: float = 0.0
+    structure_score: float = 0.01
+    style_score: float = 0.01
+    responsiveness_score: float = 0.01
+    accessibility_score: float = 0.01
+    code_quality_score: float = 0.01
+    penalties: float = 0.01
 
     model_config = {"frozen": True}
-
