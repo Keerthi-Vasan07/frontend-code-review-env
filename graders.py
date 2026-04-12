@@ -316,16 +316,16 @@ def grade(code: str, task: TaskSpec) -> GradeResult:
     # Responsiveness score: fraction match on responsiveness_keywords
     if task.responsiveness_keywords:
         resp_fraction = _fraction_keywords_present(normalised, task.responsiveness_keywords)
+        responsiveness_score = 0.02 + (resp_fraction * 0.28)  # Range: 0.02 - 0.30
     else:
-        resp_fraction = 0.5  # Neutral default
-    responsiveness_score = 0.02 + (resp_fraction * 0.28)  # Range: 0.02 - 0.30
+        responsiveness_score = 0.02  # No responsiveness requirements for this task (minimum score)
 
     # Accessibility score: fraction match on accessibility_keywords
     if task.accessibility_keywords:
         a11y_fraction = _fraction_keywords_present(normalised, task.accessibility_keywords)
+        accessibility_score = 0.02 + (a11y_fraction * 0.28)  # Range: 0.02 - 0.30
     else:
-        a11y_fraction = 0.5  # Neutral default
-    accessibility_score = 0.02 + (a11y_fraction * 0.28)  # Range: 0.02 - 0.30
+        accessibility_score = 0.02  # No accessibility requirements for this task (minimum score)
 
     # Code quality score
     quality_ok = _has_reasonable_code_quality(code)
