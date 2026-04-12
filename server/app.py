@@ -5,7 +5,7 @@ from env import FrontendEnv
 
 app = FastAPI(title="frontend_code_review_env")
 
-# Single shared environment instance
+# Single shared environment instance — state persists across requests
 env = FrontendEnv()
 
 
@@ -17,7 +17,7 @@ class StepInput(BaseModel):
 
 @app.get("/reset")
 def reset():
-    """Start (or restart) the episode from task 0."""
+    """Restart the episode from task 0. Returns the first task."""
     return env.reset()
 
 
@@ -27,7 +27,7 @@ def step(data: StepInput):
     return env.step(data.code)
 
 
-# ── Optional / diagnostic endpoints ─────────────────────────────────────────
+# ── Diagnostic endpoints ─────────────────────────────────────────────────────
 
 @app.get("/health")
 def health():

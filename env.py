@@ -1,14 +1,14 @@
 """
-frontend_code_review_env – OpenEnv-compliant environment (simplified).
+frontend_code_review_env – OpenEnv-compliant environment.
 
 Pipeline:
     Validator → FastAPI → FrontendEnv → tasks.py → graders.py → score
 
 Public interface
 ----------------
-    env.reset()         → dict  (task info)
-    env.step(code)      → dict  (reward, done, info, next_task)
-    env.state()         → dict  (debug snapshot)
+    env.reset()       → dict  {task_id, task_description, difficulty}
+    env.step(code)    → dict  {reward, done, info, next_task}
+    env.state()       → dict  (debug snapshot)
 """
 
 from __future__ import annotations
@@ -21,10 +21,11 @@ from tasks import ALL_TASKS
 
 class FrontendEnv:
     """
-    Minimal OpenEnv environment for frontend code review.
+    Sequential OpenEnv environment for frontend code review.
 
-    Tasks are served sequentially from ALL_TASKS.  Each call to reset()
-    restarts from the first task.  Each call to step() advances to the next.
+    reset() restarts from task 0.
+    step()  evaluates the current task and advances the index.
+    When all tasks are exhausted, done=True and next_task=None.
     """
 
     def __init__(self) -> None:
@@ -36,14 +37,7 @@ class FrontendEnv:
     # ------------------------------------------------------------------
 
     def reset(self) -> Dict[str, Any]:
-        """
-        Restart the episode from task 0.
-
-        Returns
-        -------
-        dict
-            task_id, task_description, difficulty
-        """
+        """Restart from task 0. Returns the first task dict."""
         self.current_index = 0
         task = self.tasks[self.current_index]
         return {
@@ -54,25 +48,22 @@ class FrontendEnv:
 
     def step(self, code: str) -> Dict[str, Any]:
         """
-        Evaluate *code* against the current task and advance to the next one.
-
-        Parameters
-        ----------
-        code:
-            Raw HTML/CSS/JS string submitted by the agent.
+        Grade *code* against the current task and advance the index.
 
         Returns
         -------
         dict
-            reward, done, info (score breakdown), next_task (or None if done)
+            reward      – float in (0.02, 0.98)
+            done        – True when all tasks have been evaluated
+            info        – full GradeResult breakdown (plain dict)
+            next_task   – next task dict, or None when done
         """
         task = self.tasks[self.current_index]
 
-        # Grade the submission – always returns a GradeResult (no crash)
         try:
             result = grade(code, task)
         except Exception:
-            # Absolute last-resort fallback so the server never 500s
+            # Absolute fallback – never crash the server
             from models import GradeResult
             result = GradeResult(
                 structure_score=0.02,
@@ -87,10 +78,10 @@ class FrontendEnv:
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
 
-        next_task_info: Optional[Dict[str, Any]] = None
+        next_task: Optional[Dict[str, Any]] = None
         if not done:
             nxt = self.tasks[self.current_index]
-            next_task_info = {
+            next_task = {
                 "task_id": nxt.task_id,
                 "task_description": nxt.task_description,
                 "difficulty": nxt.difficulty.value,
@@ -100,11 +91,11 @@ class FrontendEnv:
             "reward": result.total_reward,
             "done": done,
             "info": result.model_dump(),
-            "next_task": next_task_info,
+            "next_task": next_task,
         }
 
     def state(self) -> Dict[str, Any]:
-        """Return a debug snapshot of the current environment state."""
+        """Debug snapshot of the current environment state."""
         idx = min(self.current_index, len(self.tasks) - 1)
         task = self.tasks[idx]
         return {
