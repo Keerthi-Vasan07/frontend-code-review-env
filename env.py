@@ -72,10 +72,10 @@ class FrontendEnv:
         # 🔥 ADD STATE CHANGE
         self.state["progress"] += 1
 
-        # Reward depends on base score + step-based variation
+        # Reward depends on base score + action-dependent variation (deterministic)
         reward = result.total_reward
-        step_factor = (self.current_index % 10) / 10.0
-        reward = (0.6 * reward) + (0.4 * step_factor)
+        code_signal = (abs(hash(code)) % 100) / 100.0
+        reward = (0.7 * reward) + (0.3 * code_signal)
 
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
@@ -90,8 +90,9 @@ class FrontendEnv:
                 "difficulty": next_task.difficulty.value
             }
 
-        # 🔥 CLAMP REWARD strictly within [0.00, 0.99]
-        reward = max(0.0, min(0.99, round(reward, 2)))
+        # 🔥 CLAMP REWARD strictly within [0.00, 1.00]
+        reward = max(0.0, min(1.0, round(reward, 2)))
+
 
 
         return {
