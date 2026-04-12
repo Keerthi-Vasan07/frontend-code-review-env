@@ -16,12 +16,6 @@ def grade(code: str, task) -> GradeResult:
     if "button" in code_lower or "input" in code_lower:
         reward += 2
 
-    # Feature Selection support (Generic Mode)
-    if "feat_b" in code_lower or "feat_sso" in code_lower:
-        reward += 4
-    if "ranking" in code_lower or "[" in code_lower: # Support for ranking lists
-        reward += 2
-
     reward += min(len(code) / 500, 1.0) * 4
 
     # Baseline score (0.0 - 1.0)

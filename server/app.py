@@ -15,7 +15,7 @@ class StepInput(BaseModel):
 
 # ── Required endpoints ──────────────────────────────────────────────────────
 
-@app.post("/reset")
+@app.get("/reset")
 def reset():
     """Restart the episode from task 0. Returns the first task."""
     return env.reset()
@@ -37,8 +37,3 @@ def health():
 @app.get("/state")
 def state():
     return env.state()
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
