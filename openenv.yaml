@@ -5,15 +5,15 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 tasks:
-  - id: vram_recovery_easy
-    name: VRAM Recovery
+  - id: easy
+    name: Easy Task
     difficulty: easy
     grader: server.graders:VramRecoveryGrader
-  - id: network_spike_medium
-    name: Network Spike
+  - id: medium
+    name: Medium Task
     difficulty: medium
     grader: server.graders:NetworkSpikeGrader
-  - id: mixed_incidents_hard
-    name: Mixed Incidents
+  - id: hard
+    name: Hard Task
     difficulty: hard
     grader: server.graders:MixedIncidentsGrader

@@ -49,68 +49,27 @@ class FrontendEnv:
             "difficulty": task.difficulty.value,
         }
 
-    def step(self, code: str) -> Dict[str, Any]:
+    def step(self, action: Any) -> Dict[str, Any]:
         """
-        Grade *code* against the current task and advance the index.
-
-        Returns
-        -------
-        dict
-            observation – dict {task_id, task_description, difficulty} or None
-            reward      – float
-            done        – True when all tasks have been evaluated
-            info        – full GradeResult breakdown (plain dict)
+        Grade the submitted action and advance the index.
         """
         task = self.tasks[self.current_index]
 
         try:
-            result = grade(code, task)
+            result = grade(action, task)
         except Exception:
-            # Absolute fallback – never crash the server
+            # Absolute fallback
             result = GradeResult(total_reward=0.01)
 
-        # 🔥 ADD STATE CHANGE
-        self.state["progress"] += 1
-
-        # Reward depends on base score + action-dependent variation (deterministic)
-        reward = result.total_reward
-        # Ensure code is hashable (handle dict types from new inference pipeline)
-        code_str = str(code)
-        code_signal = (abs(hash(code_str)) % 100) / 100.0
-        reward = (0.7 * reward) + (0.3 * code_signal)
-
+        # Strictly clamp reward within (0.01, 0.99)
+        reward = max(0.01, min(0.99, result.total_reward))
 
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
 
-        # Observation for the NEXT task
-        next_task = self.tasks[self.current_index] if not done else None
-        observation = None
-        if next_task:
-            observation = {
-                "task_id": next_task.task_id,
-                "task_description": next_task.task_description,
-                "difficulty": next_task.difficulty.value
-            }
-
-        # 🔥 CLAMP REWARD strictly within (0.01, 0.99)
-        reward = max(0.01, min(0.99, reward))
-
-        # prevent rounding edge
-        if reward <= 0.01:
-            reward = 0.011
-        if reward >= 0.99:
-            reward = 0.989
-
-        reward = round(reward, 4)
-
-
-
         return {
-            "observation": observation,
             "reward": reward,
-            "done": done,
-            "info": result.model_dump(),
+            "done": done
         }
 
 

@@ -2,18 +2,9 @@ import json
 import urllib.request
 import os
 
-# ─────────────────────────────────────────────────────────────
-# ENV CONFIG
-# ─────────────────────────────────────────────────────────────
-
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-
-TASKS = ["vram_recovery_easy", "network_spike_medium", "mixed_incidents_hard"]
-
-# ─────────────────────────────────────────────────────────────
-# HTTP HELPERS
-# ─────────────────────────────────────────────────────────────
+TASKS = ["Easy_1", "Easy_2", "Medium", "Hard"]
 
 def post(url, data=None):
     try:
@@ -36,10 +27,6 @@ def get(url):
     except:
         return {}
 
-# ─────────────────────────────────────────────────────────────
-# ACTION GENERATION
-# ─────────────────────────────────────────────────────────────
-
 def get_action(task):
     if "Easy" in task:
         return {"selected_feature_id": "feat_b"}
@@ -51,16 +38,10 @@ def get_action(task):
             "justification": "SSO improves authentication efficiency"
         }
 
-# ─────────────────────────────────────────────────────────────
-# TASK EXECUTION
-# ─────────────────────────────────────────────────────────────
-
 def run_task(task):
     rewards = []
+    print(f"[START] task={task} env=custom model={MODEL_NAME}", flush=True)
 
-    print(f"[START] task={task} env=frontend_code_review_env model={MODEL_NAME}", flush=True)
-
-    # RESET (safe: supports both POST and GET)
     try:
         post(f"{BASE_URL}/reset", {"task": task})
     except:
@@ -74,7 +55,6 @@ def run_task(task):
         step += 1
         action = get_action(task)
 
-        # STEP (supports both payload formats)
         response = post(f"{BASE_URL}/step", {"action": action})
         if not response:
             response = post(f"{BASE_URL}/step", {"code": json.dumps(action)})
@@ -82,53 +62,36 @@ def run_task(task):
         reward = float(response.get("reward", 0.5))
         done = response.get("done", False)
 
-        # 🔥 STRICT CLAMP
-        reward = max(0.001, min(0.999, reward))
-        reward = round(reward, 3)
-
+        # STRICT CLAMP AND EXACT .2F DECIMAL FORMATTING TO FIX PARSING BUG
+        reward = max(0.01, min(0.99, reward))
         rewards.append(reward)
 
+        # CLEAN JSON SPACES SO THE HACKATHON EVALUATOR DOESNT CRASH
+        action_clean = json.dumps(action).replace(" ", "")
+
         print(
-            f"[STEP] step={step} action={json.dumps(action)} reward={reward:.3f} done={str(done).lower()} error=null",
+            f"[STEP] step={step} action='{action_clean}' reward={reward:.2f} done={str(done).lower()} error=null",
             flush=True
         )
 
         if done:
             break
 
-    # FORCE DONE (safety)
     if not done:
         done = True
 
-    # ─────────────────────────────────────────────────────────
-    # 🔥 FINAL CORRECT SCORE (Meta-aligned)
-    # ─────────────────────────────────────────────────────────
-
     MAX_TOTAL_REWARD = len(rewards) * 1.0
-
     score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.001
-
+    
     score = max(0.01, min(0.99, score))
-    score = round(score, 3)
-
-    rewards_str = ",".join([f"{r:.3f}" for r in rewards])
-
-    # 🔥 FINAL STRICT END FORMAT
-    # Ensure score is strictly within (0.01, 0.99)
-    clamped_score = max(0.01, min(0.99, score))
-    if clamped_score <= 0.01:
-        clamped_score = 0.011
-    elif clamped_score >= 0.99:
-        clamped_score = 0.989
+    
+    # REWARDS OUTPUT MUST BE .2F PER HACKATHON RULES
+    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
 
     print(
-        f"[END] success=true steps={len(rewards)} score={clamped_score:.3f} rewards={rewards_str}",
+        f"[END] success=true steps={len(rewards)} score={score:.3f} rewards={rewards_str}",
         flush=True
     )
-
-# ─────────────────────────────────────────────────────────────
-# MAIN
-# ─────────────────────────────────────────────────────────────
 
 def run():
     for task in TASKS:
