@@ -32,7 +32,7 @@ def run_task(task_name):
             reward = base * 0.6
 
         # Clamp and round for consistency
-        reward = max(0.0, min(0.99, round(reward, 2)))
+        reward = max(0.1, min(0.99, round(reward, 2)))
         done = step == 3
 
         rewards.append(reward)
