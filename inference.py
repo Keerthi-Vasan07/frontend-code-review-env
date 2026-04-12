@@ -57,17 +57,19 @@ def generate_code(task: dict) -> str:
 # ─────────────────────────────────────────────────────────────
 
 def run_all_tasks():
-    results = []
+    # Strict OpenEnv validator format output
+    print(f"[START] task=frontend env=custom model={MODEL_NAME}")
 
-    print("[START]")
-    print(f"total_tasks={len(ALL_TASKS)}")
-    print(f"model={MODEL_NAME}")
-
-    # Single env instance — tasks progress sequentially via internal index
     env = FrontendEnv()
     obs = env.reset()
+    
+    rewards = []
+    step = 0
+    final_done = False
 
     for _ in range(len(ALL_TASKS)):
+        step += 1
+        
         task_dict = {
             "task_id": obs["task_id"],
             "task_description": obs["task_description"],
@@ -78,53 +80,26 @@ def run_all_tasks():
 
         reward = step_result["reward"]
         done = step_result["done"]
-        info = step_result["info"]
+        final_done = done
+        
+        rewards.append(reward)
 
-        print("[STEP]")
-        print(f"task_id={obs['task_id']}")
-        print(f"difficulty={obs['difficulty']}")
-        print(f"reward={reward}")
-        print(f"structure_score={info.get('structure_score', 0.0)}")
-        print(f"style_score={info.get('style_score', 0.0)}")
-        print(f"responsiveness_score={info.get('responsiveness_score', 0.0)}")
-        print(f"accessibility_score={info.get('accessibility_score', 0.0)}")
-        print(f"code_quality_score={info.get('code_quality_score', 0.0)}")
-        print(f"penalties={info.get('penalties', 0.0)}")
-        print(f"done={str(done).lower()}")
-
-        results.append({
-            "task_id": obs["task_id"],
-            "difficulty": obs["difficulty"],
-            "reward": reward,
-            "details": info,
-        })
+        # Strict STEP line
+        print(f"[STEP] step={step} action=generate_code reward={reward:.2f} done={str(done).lower()} error=null")
 
         if done:
             break
 
-        # Advance obs to the next task using internal environment index
-        if not done:
-            nxt = ALL_TASKS[env.current_index]
-            obs = {
-                "task_id": nxt.task_id,
-                "task_description": nxt.task_description,
-                "difficulty": nxt.difficulty.value,
-            }
-        else:
-            obs = None
+        # Advance obs to the next task returned by the environment contract
+        obs = step_result["observation"]
 
-
-    return results
+    # Strict END line
+    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    print(f"[END] success={str(final_done).lower()} steps={len(rewards)} rewards={rewards_str}")
 
 # ─────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    results = run_all_tasks()
-
-    avg_reward = sum(r["reward"] for r in results) / len(results) if results else 0.0
-
-    print("[END]")
-    print(f"total_tasks={len(results)}")
-    print(f"average_reward={avg_reward}")
+    run_all_tasks()
