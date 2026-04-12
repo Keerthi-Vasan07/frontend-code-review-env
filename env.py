@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from graders import grade
+from models import GradeResult
 from tasks import ALL_TASKS
 
 
@@ -64,16 +65,7 @@ class FrontendEnv:
             result = grade(code, task)
         except Exception:
             # Absolute fallback – never crash the server
-            from models import GradeResult
-            result = GradeResult(
-                structure_score=0.02,
-                style_score=0.02,
-                responsiveness_score=0.02,
-                accessibility_score=0.02,
-                code_quality_score=0.02,
-                penalties=0.0,
-                total_reward=0.02,
-            )
+            result = GradeResult(total_reward=0.02)
 
         self.current_index += 1
         done = self.current_index >= len(self.tasks)

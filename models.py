@@ -161,18 +161,15 @@ class TaskSpec(BaseModel):
 
 class GradeResult(BaseModel):
     """
-    Detailed grading result for a single action.
-
-    All sub-scores are in [0.0, 1.0] for their respective maximum.
-    ``total_reward`` is the final capped score in [-0.5, 1.0].
+    Simplified grading result for a single action, retaining standard schema.
     """
-
-    structure_score: float = Field(ge=0.0, le=1.0)
-    style_score: float = Field(ge=0.0, le=1.0)
-    responsiveness_score: float = Field(ge=0.0, le=1.0)
-    accessibility_score: float = Field(ge=0.0, le=1.0)
-    code_quality_score: float = Field(ge=0.0, le=1.0)
-    penalties: float = Field(le=0.0)
     total_reward: float
+    structure_score: float = 0.0
+    style_score: float = 0.0
+    responsiveness_score: float = 0.0
+    accessibility_score: float = 0.0
+    code_quality_score: float = 0.0
+    penalties: float = 0.0
 
     model_config = {"frozen": True}
+
