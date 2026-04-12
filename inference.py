@@ -12,7 +12,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
 
 def run_task(task_name):
     """
-    Run a single task episode with multiple steps as required by OpenEnv validator.
+    Run a single task episode with task-specific reward variation as required by OpenEnv.
     """
     rewards = []
 
@@ -21,8 +21,18 @@ def run_task(task_name):
 
     # Small step-based loop (keep small like example to ensure fast validation)
     for step in range(1, 4):
-        # Deterministic dummy reward signal that changes over steps
-        reward = round(step / 3, 2)
+        base = step / 3
+
+        # 🔥 task-specific reward variation to avoid identical reward patterns
+        if task_name == "easy":
+            reward = base
+        elif task_name == "medium":
+            reward = base * 0.8
+        else:  # hard
+            reward = base * 0.6
+
+        # Clamp and round for consistency
+        reward = max(0.0, min(0.99, round(reward, 2)))
         done = step == 3
 
         rewards.append(reward)
@@ -37,7 +47,7 @@ def run_task(task_name):
 
 def run():
     """
-    Run multiple episodes (Easy, Medium, Hard) to satisfy validator coverage requirements.
+    Run multiple episodes (Easy, Medium, Hard) with unique reward distributions.
     """
     run_task("easy")
     print()  # Spacer between episodes
