@@ -88,12 +88,16 @@ class FrontendEnv:
                 "difficulty": next_task.difficulty.value
             }
 
+        # 🔥 CLAMP REWARD strictly within [0.00, 1.00]
+        reward = max(0.0, min(1.0, round(reward, 2)))
+
         return {
             "observation": observation,
             "reward": reward,
             "done": done,
             "info": result.model_dump(),
         }
+
 
 
 
