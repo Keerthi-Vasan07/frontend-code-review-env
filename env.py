@@ -74,8 +74,11 @@ class FrontendEnv:
 
         # Reward depends on base score + action-dependent variation (deterministic)
         reward = result.total_reward
-        code_signal = (abs(hash(code)) % 100) / 100.0
+        # Ensure code is hashable (handle dict types from new inference pipeline)
+        code_str = str(code)
+        code_signal = (abs(hash(code_str)) % 100) / 100.0
         reward = (0.7 * reward) + (0.3 * code_signal)
+
 
         self.current_index += 1
         done = self.current_index >= len(self.tasks)

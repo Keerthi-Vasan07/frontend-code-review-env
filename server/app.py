@@ -10,21 +10,22 @@ env = FrontendEnv()
 
 
 class StepInput(BaseModel):
-    code: str
+    action: dict
 
 
 # ── Required endpoints ──────────────────────────────────────────────────────
 
-@app.get("/reset")
+@app.post("/reset")
 def reset():
-    """Restart the episode from task 0. Returns the first task."""
+    """Restart the episode. Response is the first task."""
     return env.reset()
 
 
 @app.post("/step")
 def step(data: StepInput):
-    """Evaluate submitted code and advance to the next task."""
-    return env.step(data.code)
+    """Evaluate submitted action and advance the simulation."""
+    return env.step(data.action)
+
 
 
 # ── Diagnostic endpoints ─────────────────────────────────────────────────────
