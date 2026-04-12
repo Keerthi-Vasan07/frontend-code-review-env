@@ -56,7 +56,8 @@ class FrontendEnv:
         Returns
         -------
         dict
-            reward      – float in (0.02, 0.98)
+            observation – dict {task_id, task_description, difficulty} or None
+            reward      – float
             done        – True when all tasks have been evaluated
             info        – full GradeResult breakdown (plain dict)
         """
@@ -77,11 +78,23 @@ class FrontendEnv:
         self.current_index += 1
         done = self.current_index >= len(self.tasks)
 
+        # Observation for the NEXT task
+        next_task = self.tasks[self.current_index] if not done else None
+        observation = None
+        if next_task:
+            observation = {
+                "task_id": next_task.task_id,
+                "task_description": next_task.task_description,
+                "difficulty": next_task.difficulty.value
+            }
+
         return {
+            "observation": observation,
             "reward": reward,
             "done": done,
             "info": result.model_dump(),
         }
+
 
 
     def state(self) -> Dict[str, Any]:
