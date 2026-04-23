@@ -1,101 +1,58 @@
-import json
-import urllib.request
 import os
+from env import FrontendCodeReviewEnv
+from models import Action
 
 MODEL_NAME = os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-TASKS = ["Easy_1", "Easy_2", "Medium", "Hard"]
-
-def post(url, data=None):
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(data).encode("utf-8") if data else None,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req) as res:
-            return json.loads(res.read().decode())
-    except:
-        return {}
-
-def get(url):
-    try:
-        req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req) as res:
-            return json.loads(res.read().decode())
-    except:
-        return {}
 
 def get_action(task):
-    if "Easy" in task:
-        return {"selected_feature_id": "feat_b"}
-    elif task == "Medium":
-        return {"ranking": ["feat_b", "feat_dark", "feat_ai"]}
-    else:
-        return {
-            "selected_feature_id": "feat_sso",
-            "justification": "SSO improves authentication efficiency"
-        }
+    return '''
+    <button style="background-color:red;color:white"
+            aria-label="Click Button">
+        Click Me
+    </button>
+    '''
 
-def run_task(task):
-    rewards = []
-    print(f"[START] task={task} env=custom model={MODEL_NAME}", flush=True)
-
-    try:
-        post(f"{BASE_URL}/reset", {"task": task})
-    except:
-        get(f"{BASE_URL}/reset")
-
-    step = 0
-    done = False
-    MAX_STEPS = 10
-
-    while step < MAX_STEPS:
-        step += 1
-        action = get_action(task)
-
-        response = post(f"{BASE_URL}/step", {"action": action})
-        if not response:
-            response = post(f"{BASE_URL}/step", {"code": json.dumps(action)})
-
-        reward = float(response.get("reward", 0.5))
-        done = response.get("done", False)
-
-        # STRICT CLAMP AND EXACT .2F DECIMAL FORMATTING TO FIX PARSING BUG
-        reward = max(0.01, min(0.99, reward))
-        rewards.append(reward)
-
-        # CLEAN JSON SPACES SO THE HACKATHON EVALUATOR DOESNT CRASH
-        action_clean = json.dumps(action).replace(" ", "")
-
-        print(
-            f"[STEP] step={step} action='{action_clean}' reward={reward:.2f} done={str(done).lower()} error=null",
-            flush=True
-        )
-
-        if done:
-            break
-
-    if not done:
-        done = True
-
-    MAX_TOTAL_REWARD = len(rewards) * 1.0
-    score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.001
+def main():
+    env = FrontendCodeReviewEnv()
     
-    score = max(0.01, min(0.99, score))
+    tasks = env.available_tasks()
+    total_tasks = len(tasks)
     
-    # REWARDS OUTPUT MUST BE .2F PER HACKATHON RULES
-    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    print("[START]")
+    print(f"total_tasks={total_tasks}")
+    print(f"model={MODEL_NAME}")
+    
+    total_reward = 0.0
+    
+    for _ in range(total_tasks):
+        env.reset()
+        state = env.state()
+        task_id = state["task_id"]
+        
+        action_code = get_action(task_id)
+        action = Action(code=action_code)
+        
+        _, reward, done, info = env.step(action)
+        
+        total_reward += reward
+        
+        print("\n[STEP]")
+        print(f"task_id={info['task_id']}")
+        print(f"difficulty={info['difficulty']}")
+        print(f"reward={reward:.4f}")
+        print(f"structure_score={info.get('structure_score', 0.01):.4f}")
+        print(f"style_score={info.get('style_score', 0.01):.4f}")
+        print(f"responsiveness_score={info.get('responsiveness_score', 0.01):.4f}")
+        print(f"accessibility_score={info.get('accessibility_score', 0.01):.4f}")
+        print(f"code_quality_score={info.get('code_quality_score', 0.01):.4f}")
+        print(f"penalties={info.get('penalties', 0.0):.1f}")
+        print(f"done={str(done).lower()}")
 
-    print(
-        f"[END] success=true steps={len(rewards)} score={score:.3f} rewards={rewards_str}",
-        flush=True
-    )
-
-def run():
-    for task in TASKS:
-        run_task(task)
+    avg_reward = total_reward / total_tasks
+    
+    print("\n[END]")
+    print(f"total_tasks={total_tasks}")
+    print(f"average_reward={avg_reward:.4f}")
 
 if __name__ == "__main__":
-    run()
+    main()
